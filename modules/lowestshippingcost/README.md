@@ -1,9 +1,10 @@
 # Lowest Shipping Cost (PrestaShop 9)
 
-The module shows the **lowest possible delivery cost** on the product page for a
-given product, matched to the **visitor's location**, the **selected quantity**
-and the **selected variant (combination)**, accounting for as many of the
-conditions that affect shipping price in PrestaShop as possible.
+The module shows the **lowest possible delivery cost** for a given product — on the
+**product page** and inside the **Quick View** modal — matched to the **visitor's
+location**, the **selected quantity** and the **selected variant (combination)**,
+accounting for as many of the conditions that affect shipping price in PrestaShop as
+possible.
 
 ## How it works
 
@@ -19,12 +20,17 @@ module **mirrors that same algorithm** for the selected quantity and takes the
 
 The logic lives in `src/Calculator/LowestShippingCostCalculator.php`.
 
-**Reactivity without custom JS:** the block is part of the `product-additional-info`
-fragment (wrapped in the `js-product-additional-info` class in PS 9's *hummingbird*
-theme), which the core (`ProductController::displayAjaxRefresh`) re-renders on every
-**quantity** or **variant** change. The hook reads `quantity_wanted` and the
-resolved `id_product_attribute`, so the price updates live. The visitor's country
-comes from `context->country` (geolocation or the logged-in customer's address).
+**One hook, product page + Quick View:** the block is rendered via the
+`displayProductActions` hook, placed just below the *Add to cart* button
+(`product-add-to-cart.tpl`). That partial is included by both the full product page
+**and** hummingbird's `quickview.tpl`, so a single registration covers both — unlike
+`displayProductAdditionalInfo`, which hummingbird's quickview does not render.
+
+**Reactivity without custom JS:** `product-add-to-cart` is one of the fragments the
+core (`ProductController::displayAjaxRefresh`) re-renders on every **quantity** or
+**variant** change, so the price updates live. The hook reads `quantity_wanted` and
+the resolved `id_product_attribute`; the visitor's country comes from
+`context->country` (geolocation or the logged-in customer's address).
 
 ### Conditions taken into account
 
@@ -103,15 +109,17 @@ HelperForm) — details in the "Code structure and quality" section.
 
 1. Open any demo product → the "Delivery from …" block appears under the "Add to
    cart" button.
-2. **Quantity**: change the quantity selector → the price recomputes live (weight /
+2. **Quick View**: on a category/home listing, open a product's Quick View → the same
+   block appears under "Add to cart" inside the modal.
+3. **Quantity**: change the quantity selector → the price recomputes live (weight /
    value / additional cost × quantity); crossing the free-shipping threshold → "Free".
-3. **Variant**: pick another combination → the cost reflects the variant's weight/price.
-4. **Location**: compare *Visitor location* (e.g. a country with VAT) with *Global
+4. **Variant**: pick another combination → the cost reflects the variant's weight/price.
+5. **Location**: compare *Visitor location* (e.g. a country with VAT) with *Global
    minimum* (the cheapest, often tax-free country); log in a customer with an address in another zone.
-5. Set `additional_shipping_cost` / `shipping_handling` → the cost grows by those components.
-6. A carrier with `range_behavior` = "disable" and a weight out of range → it disappears from the candidates.
-7. Virtual product → no-shipping message.
-8. Cross-check: add the selected quantity/variant to the cart, address = the resulting
+6. Set `additional_shipping_cost` / `shipping_handling` → the cost grows by those components.
+7. A carrier with `range_behavior` = "disable" and a weight out of range → it disappears from the candidates.
+8. Virtual product → no-shipping message.
+9. Cross-check: add the selected quantity/variant to the cart, address = the resulting
    country, pick the winning carrier — the checkout cost equals the value on the product page.
 
 ## Cache

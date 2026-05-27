@@ -1,7 +1,8 @@
 # Lowest Shipping Cost — run environment
 
 A **PrestaShop 9** module that shows the **lowest possible delivery cost** on the
-product page (matched to the visitor's location, quantity and variant). This
+product page and in the Quick View modal (matched to the visitor's location, quantity
+and variant). This
 repository contains the module itself (`modules/lowestshippingcost/`) plus a
 ready-made Docker environment to run it on a clean PrestaShop install without any
 manual setup.

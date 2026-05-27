@@ -68,7 +68,7 @@ class LowestShippingCost extends Module
     public function install(): bool
     {
         return parent::install()
-            && $this->registerHook('displayProductAdditionalInfo')
+            && $this->registerHook('displayProductActions')
             && $this->registerHook('displayHeader')
             && $this->registerHook('actionObjectCarrierUpdateAfter')
             && $this->registerHook('actionObjectCarrierDeleteAfter')
@@ -91,12 +91,18 @@ class LowestShippingCost extends Module
     }
 
     /**
-     * Block on the product page (theme partial product-additional-info.tpl;
-     * hummingbird is the default theme in PS 9). Inputs are resolved by
+     * Block rendered just below the "Add to cart" button (theme partial
+     * product-add-to-cart.tpl), on the product page and inside the Quick View
+     * modal. displayProductActions is used rather than displayProductAdditionalInfo
+     * because hummingbird's quickview.tpl renders the former but not the latter,
+     * while the product page renders both and re-emits this fragment
+     * (product_add_to_cart) on every quantity/variant change via
+     * ProductController::displayAjaxRefresh() - so a single hook covers both
+     * contexts with live updates and no custom JS. Inputs are resolved by
      * ProductPageResolver and the result is computed/cached by CachedCalculator;
      * this method only wires them together and assigns the template.
      */
-    public function hookDisplayProductAdditionalInfo(array $params): string
+    public function hookDisplayProductActions(array $params): string
     {
         $resolver = new ProductPageResolver($this->context);
         $product = $resolver->resolveProduct($params);
