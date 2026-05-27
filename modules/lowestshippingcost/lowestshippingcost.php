@@ -68,7 +68,7 @@ class LowestShippingCost extends Module
     public function install(): bool
     {
         return parent::install()
-            && $this->registerHook('displayProductActions')
+            && $this->registerHook('displayProductPriceBlock')
             && $this->registerHook('displayHeader')
             && $this->registerHook('actionObjectCarrierUpdateAfter')
             && $this->registerHook('actionObjectCarrierDeleteAfter')
@@ -91,19 +91,27 @@ class LowestShippingCost extends Module
     }
 
     /**
-     * Block rendered just below the "Add to cart" button (theme partial
-     * product-add-to-cart.tpl), on the product page and inside the Quick View
-     * modal. displayProductActions is used rather than displayProductAdditionalInfo
-     * because hummingbird's quickview.tpl renders the former but not the latter,
-     * while the product page renders both and re-emits this fragment
-     * (product_add_to_cart) on every quantity/variant change via
-     * ProductController::displayAjaxRefresh() - so a single hook covers both
-     * contexts with live updates and no custom JS. Inputs are resolved by
-     * ProductPageResolver and the result is computed/cached by CachedCalculator;
-     * this method only wires them together and assigns the template.
+     * Block rendered inside the price area (theme partial product-prices.tpl), on
+     * the product page and inside the Quick View modal.
+     *
+     * displayProductPriceBlock is used because product-prices.tpl is included by
+     * both product.tpl and hummingbird's quickview.tpl, and the core re-renders the
+     * whole product_prices fragment (a clean node replacement) on every
+     * quantity/variant change via ProductController::displayAjaxRefresh() - so a
+     * single hook covers both contexts with live updates and no custom JS. The hook
+     * fires several times per page (once per price-block "type"); we render only at
+     * the block-level "weight" slot of the product sheet (product-prices.tpl), which
+     * keeps valid markup (not nested in an inline element) and never matches the
+     * listing miniatures, which emit other types/origins - so the block stays off
+     * product tiles. Inputs are resolved by ProductPageResolver and the result is
+     * computed/cached by CachedCalculator.
      */
-    public function hookDisplayProductActions(array $params): string
+    public function hookDisplayProductPriceBlock(array $params): string
     {
+        if (($params['type'] ?? null) !== 'weight' || ($params['hook_origin'] ?? null) !== 'product_sheet') {
+            return '';
+        }
+
         $resolver = new ProductPageResolver($this->context);
         $product = $resolver->resolveProduct($params);
         if (!Validate::isLoadedObject($product)) {

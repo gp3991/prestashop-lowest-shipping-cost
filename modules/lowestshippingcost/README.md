@@ -21,16 +21,21 @@ module **mirrors that same algorithm** for the selected quantity and takes the
 The logic lives in `src/Calculator/LowestShippingCostCalculator.php`.
 
 **One hook, product page + Quick View:** the block is rendered via the
-`displayProductActions` hook, placed just below the *Add to cart* button
-(`product-add-to-cart.tpl`). That partial is included by both the full product page
-**and** hummingbird's `quickview.tpl`, so a single registration covers both — unlike
-`displayProductAdditionalInfo`, which hummingbird's quickview does not render.
+`displayProductPriceBlock` hook in the price area (`product-prices.tpl`). That partial
+is included by both the full product page **and** hummingbird's `quickview.tpl`, so a
+single registration covers both — unlike `displayProductAdditionalInfo`, which
+hummingbird's quickview does not render. The hook fires once per price-block *type*;
+the module renders only at the block-level `weight` slot of the product sheet (valid
+markup, and absent from listing miniatures, which use other types — so the block never
+shows up on product tiles).
 
-**Reactivity without custom JS:** `product-add-to-cart` is one of the fragments the
-core (`ProductController::displayAjaxRefresh`) re-renders on every **quantity** or
-**variant** change, so the price updates live. The hook reads `quantity_wanted` and
-the resolved `id_product_attribute`; the visitor's country comes from
-`context->country` (geolocation or the logged-in customer's address).
+**Reactivity without custom JS:** the core (`ProductController::displayAjaxRefresh`)
+replaces the whole `product_prices` node on every **quantity** or **variant** change,
+so the price updates live. (The neighbouring `product_add_to_cart` fragment is *not*
+swapped wholesale — the core only patches the button / availability / minimal-quantity
+inside it — which is why a price-area hook, not an add-to-cart one, stays reactive.)
+The hook reads `quantity_wanted` and the resolved `id_product_attribute`; the visitor's
+country comes from `context->country` (geolocation or the logged-in customer's address).
 
 ### Conditions taken into account
 
@@ -107,10 +112,9 @@ HelperForm) — details in the "Code structure and quality" section.
 
 ## Verification
 
-1. Open any demo product → the "Delivery from …" block appears under the "Add to
-   cart" button.
+1. Open any demo product → the "Delivery from …" block appears in the price area.
 2. **Quick View**: on a category/home listing, open a product's Quick View → the same
-   block appears under "Add to cart" inside the modal.
+   block appears in the modal's price area.
 3. **Quantity**: change the quantity selector → the price recomputes live (weight /
    value / additional cost × quantity); crossing the free-shipping threshold → "Free".
 4. **Variant**: pick another combination → the cost reflects the variant's weight/price.
