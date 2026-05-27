@@ -1,0 +1,51 @@
+# PrestaShop 9.1 development environment for testing the lowestshippingcost module.
+# Start:        docker compose up -d
+# Shop:         http://localhost:8088
+# Back office:  http://localhost:8088/admin-dev  (admin@example.com / prestashop123)
+
+services:
+  mysql:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: prestashop
+      MARIADB_DATABASE: prestashop
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  prestashop:
+    image: prestashop/prestashop:9.1-apache
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8088:80"
+    environment:
+      DB_SERVER: mysql
+      DB_PORT: 3306
+      DB_NAME: prestashop
+      DB_USER: root
+      DB_PASSWD: prestashop
+      DB_PREFIX: ps_
+      PS_INSTALL_AUTO: 1
+      PS_ERASE_DB: 0
+      PS_DEV_MODE: 1
+      PS_DOMAIN: localhost:8088
+      PS_FOLDER_ADMIN: admin-dev
+      PS_FOLDER_INSTALL: install-dev
+      PS_COUNTRY: pl
+      PS_LANGUAGE: en
+      ADMIN_MAIL: admin@example.com
+      ADMIN_PASSWD: prestashop123
+    volumes:
+      - ps_data:/var/www/html
+      # Module bind-mounted live - code changes are visible without rebuilding the image.
+      - ./modules/lowestshippingcost:/var/www/html/modules/lowestshippingcost
+
+volumes:
+  db_data:
+  ps_data:
