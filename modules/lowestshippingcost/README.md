@@ -1,160 +1,161 @@
 # Lowest Shipping Cost (PrestaShop 9)
 
-Moduł wyświetla na karcie produktu **najniższy możliwy koszt dostawy** dla danego
-produktu, dopasowany do **lokalizacji odwiedzającego**, **wybranej ilości** oraz
-**wybranego wariantu (kombinacji)**, uwzględniając maksymalnie dużo warunków, jakie
-w PrestaShop wpływają na cenę przesyłki.
+The module shows the **lowest possible delivery cost** on the product page for a
+given product, matched to the **visitor's location**, the **selected quantity**
+and the **selected variant (combination)**, accounting for as many of the
+conditions that affect shipping price in PrestaShop as possible.
 
-## Jak to działa
+## How it works
 
-Koszt wysyłki w PrestaShop nie jest atrybutem produktu — liczony jest na poziomie
-koszyka i adresu w `Cart::getPackageShippingCost()` (`classes/Cart.php`). Na karcie
-produktu nie ma ani koszyka, ani (dla gościa) jawnego adresu. Dlatego moduł
-**odwzorowuje ten sam algorytm** dla wybranej ilości produktu i bierze
-**minimum po dostępnych przewoźnikach** (z VAT):
+Shipping cost in PrestaShop is not a product attribute — it is computed at the
+cart and address level in `Cart::getPackageShippingCost()` (`classes/Cart.php`).
+The product page has neither a cart nor (for a guest) an explicit address, so the
+module **mirrors that same algorithm** for the selected quantity and takes the
+**minimum across the available carriers** (tax included):
 
-> dla **destynacji** (kraj odwiedzającego / domyślny / wszystkie) × każdego
-> dostępnego **przewoźnika** liczy koszt dla wybranej ilości i wariantu, biorąc
-> najniższą wartość brutto.
+> for the **destination** (visitor's country / default / all) × each available
+> **carrier** it computes the cost for the selected quantity and variant, keeping
+> the lowest gross value.
 
-Logika znajduje się w `src/Calculator/LowestShippingCostCalculator.php`.
+The logic lives in `src/Calculator/LowestShippingCostCalculator.php`.
 
-**Reaktywność bez własnego JS:** blok jest częścią fragmentu
-`product-additional-info` (w motywie *hummingbird* z PS 9 owinięty klasą
-`js-product-additional-info`), który rdzeń (`ProductController::displayAjaxRefresh`)
-re-renderuje przy każdej zmianie **ilości** lub **wariantu**. Hook odczytuje
-`quantity_wanted` i rozwiązany `id_product_attribute`, więc cena aktualizuje się
-na żywo. Kraj odwiedzającego pochodzi z `context->country` (geolokalizacja lub
-adres zalogowanego klienta).
+**Reactivity without custom JS:** the block is part of the `product-additional-info`
+fragment (wrapped in the `js-product-additional-info` class in PS 9's *hummingbird*
+theme), which the core (`ProductController::displayAjaxRefresh`) re-renders on every
+**quantity** or **variant** change. The hook reads `quantity_wanted` and the
+resolved `id_product_attribute`, so the price updates live. The visitor's country
+comes from `context->country` (geolocation or the logged-in customer's address).
 
-### Uwzględniane warunki
+### Conditions taken into account
 
-- **lokalizacja odwiedzającego** (geolokalizacja / adres zalogowanego klienta, fallback kraj domyślny),
-- **ilość** z selektora (waga / wartość zamówienia / koszt dodatkowy × ilość),
-- **wariant / kombinacja** (waga `Combination->weight` i cena `getPrice(idAttr)`),
-- strefy / kraje i ceny przedziałów per strefa (tabela `delivery`),
-- dostępność przewoźnika w strefie (`Carrier::checkCarrierZone`),
-- metoda przewoźnika: wg wagi / wg ceny / darmowy (`getShippingMethod`),
-- przedziały wagowe/cenowe + zachowanie poza zakresem (`range_behavior`),
-- darmowy przewoźnik (`is_free`),
-- globalne progi darmowej wysyłki (`PS_SHIPPING_FREE_PRICE`, `PS_SHIPPING_FREE_WEIGHT`),
-- opłata manipulacyjna (`PS_SHIPPING_HANDLING` + `shipping_handling`),
-- koszt dodatkowy produktu (`additional_shipping_cost`),
-- VAT przewoźnika zależny od kraju (`getTaxesRate`) oraz **tryb prezentacji ceny**:
-  netto/brutto zgodnie z grupą klienta (`getTaxCalculationMethod` — spójnie z ceną
-  produktu, np. B2B netto), globalny przełącznik `PS_TAX` i `PS_ATCP_SHIPWRAP`
-  (Niemcy) — logika w `Calculator/TaxContext`,
-- przewoźnicy przypisani do produktu (`product_carrier`),
-- ograniczenia grup klientów (`carrier_group`),
-- przeliczenie waluty (`Tools::convertPrice`),
-- produkty wirtualne (brak wysyłki), multistore.
+- **visitor location** (geolocation / logged-in customer address, fallback to the default country),
+- **quantity** from the selector (weight / order total / additional cost × quantity),
+- **variant / combination** (weight `Combination->weight` and price `getPrice(idAttr)`),
+- zones / countries and per-zone range prices (`delivery` table),
+- carrier availability per zone (`Carrier::checkCarrierZone`),
+- carrier method: by weight / by price / free (`getShippingMethod`),
+- weight/price ranges + out-of-range behavior (`range_behavior`),
+- free carrier (`is_free`),
+- global free-shipping thresholds (`PS_SHIPPING_FREE_PRICE`, `PS_SHIPPING_FREE_WEIGHT`),
+- handling fee (`PS_SHIPPING_HANDLING` + `shipping_handling`),
+- product additional cost (`additional_shipping_cost`),
+- carrier VAT per country (`getTaxesRate`) and the **price display mode**:
+  net/gross according to the customer group (`getTaxCalculationMethod` — consistent
+  with the product price, e.g. B2B net), the global `PS_TAX` switch and
+  `PS_ATCP_SHIPWRAP` (Germany) — logic in `Calculator/TaxContext`,
+- carriers assigned to the product (`product_carrier`),
+- customer group restrictions (`carrier_group`),
+- currency conversion (`Tools::convertPrice`),
+- virtual products (no shipping), multistore.
 
-**Przewoźnicy zewnętrzni** (`shipping_external`) są świadomie pomijani — ich cenę
-liczy własny moduł (`getPackageShippingCostFromModule`), często odpytując API
-kuriera o adres dostawy, więc nie da się jej wiarygodnie odtworzyć na karcie
-produktu (gdzie gość nie ma adresu). Jeśli dla danego produktu **żaden**
-odtwarzalny przewoźnik nie da ceny, blok w ogóle się nie renderuje (zamiast
-pokazywać komunikat „brak").
+**External carriers** (`shipping_external`) are skipped on purpose — their price is
+computed by their own module (`getPackageShippingCostFromModule`), often by querying
+the courier's API with the delivery address, so it cannot be reliably reproduced on
+the product page (where a guest has no address). If **no** reproducible carrier
+yields a price for a product, the block is not rendered at all (instead of showing a
+"not available" message).
 
-## Instalacja (środowisko developerskie)
+## Installation (development environment)
 
-Z katalogu nadrzędnego (gdzie jest `docker-compose.yml`):
+From the parent directory (where `docker-compose.yml` lives):
 
 ```bash
-# 1. Zależności + autoloader PSR-4 (generuje vendor/autoload.php).
-#    Moduł ładuje go warunkowo; klasy z src/ nie zadziałają bez tego kroku.
+# 1. Dependencies + PSR-4 autoloader (generates vendor/autoload.php).
+#    The module loads it conditionally; classes in src/ won't work without this step.
 cd modules/lowestshippingcost && composer install --no-dev && cd -
 
 docker compose up -d
-# poczekaj na auto-instalację PrestaShop, potem (jako www-data, by nie psuć
-# uprawnień plików var/logs i var/cache):
+# wait for PrestaShop's auto-install, then (as www-data, to avoid breaking the
+# permissions of var/logs and var/cache):
 docker compose exec -u www-data prestashop php bin/console prestashop:module install lowestshippingcost
 ```
 
-> Polecenia `bin/console` uruchamiaj z `-u www-data`. Bez tego pliki (np.
-> `var/logs/dev-*.log`) powstają jako root i Apache (www-data) nie może do nich
-> pisać → błąd „could not be opened in append mode: Permission denied". Naprawa
-> ad hoc: `docker compose exec prestashop chown -R www-data:www-data var/logs var/cache`.
+> Run `bin/console` commands with `-u www-data`. Otherwise files (e.g.
+> `var/logs/dev-*.log`) are created as root and Apache (www-data) cannot write to
+> them → "could not be opened in append mode: Permission denied" error. Ad-hoc fix:
+> `docker compose exec prestashop chown -R www-data:www-data var/logs var/cache`.
 
-Sklep: <http://localhost:8088> · Back office: <http://localhost:8088/admin-dev>
-(`admin@example.com` / `prestashop123`). Moduł można też włączyć w BO → *Moduły*.
+Shop: <http://localhost:8088> · Back office: <http://localhost:8088/admin-dev>
+(`admin@example.com` / `prestashop123`). The module can also be enabled in BO → *Modules*.
 
-## Konfiguracja (BO → Moduły → Lowest Shipping Cost → Konfiguruj)
+## Configuration (BO → Modules → Lowest Shipping Cost → Configure)
 
-Strona ustawień to **kontroler Symfony + `FormType`** renderowany w Twigu (nie
-HelperForm) — szczegóły w sekcji „Struktura i jakość kodu".
+The settings page is a **Symfony controller + `FormType`** rendered with Twig (not
+HelperForm) — details in the "Code structure and quality" section.
 
-- **Destination** — względem jakiej destynacji liczyć minimum:
-  - *Visitor location* (domyślnie) — kraj odwiedzającego (geolokalizacja / adres klienta, fallback kraj domyślny),
-  - *Shop default country* — tylko kraj domyślny sklepu,
-  - *Global minimum* — minimum po wszystkich aktywnych krajach.
-- **Consider all customer groups** — minimum teoretyczne po wszystkich grupach
-  (domyślnie: tylko grupa bieżącego odwiedzającego).
-- **Skip external carriers** — pomijaj przewoźników zewnętrznych (domyślnie tak).
-- **Show carrier and destination** — pokazuj nazwę przewoźnika i kraj.
+- **Destination** — which destination the minimum is computed for:
+  - *Visitor location* (default) — the visitor's country (geolocation / customer address, fallback to the default country),
+  - *Shop default country* — the shop's default country only,
+  - *Global minimum* — the minimum across all active countries.
+- **Consider all customer groups** — theoretical minimum across every group
+  (default: only the current visitor's group).
+- **Skip external carriers** — skip external carriers (default: yes).
+- **Show carrier and destination** — show the carrier name and country.
 
-> **Geolokalizacja:** prawdziwy per-visitor kraj dla gościa wymaga włączenia
-> `PS_GEOLOCATION_ENABLED` + bazy GeoLite. Bez tego tryb *Visitor location* używa
-> kraju domyślnego sklepu.
+> **Geolocation:** a real per-visitor country for a guest requires enabling
+> `PS_GEOLOCATION_ENABLED` + the GeoLite database. Without it the *Visitor location*
+> mode uses the shop's default country.
 
-## Weryfikacja
+## Verification
 
-1. Otwórz dowolny produkt demo → pod przyciskiem „Dodaj do koszyka" pojawia się
-   blok „Delivery from …".
-2. **Ilość**: zmień selektor ilości → cena przelicza się na żywo (waga / wartość /
-   koszt dodatkowy × ilość); przekroczenie progu darmowej wysyłki → „Free".
-3. **Wariant**: wybierz inną kombinację → koszt odzwierciedla wagę/cenę wariantu.
-4. **Lokalizacja**: porównaj *Visitor location* (np. kraj z VAT) z *Global minimum*
-   (najtańszy, często bezpodatkowy kraj); zaloguj klienta z adresem w innej strefie.
-5. Ustaw `additional_shipping_cost` / `shipping_handling` → koszt rośnie o te składniki.
-6. Przewoźnik z `range_behavior` = „dezaktywuj" i waga poza zakresem → znika z kandydatów.
-7. Produkt wirtualny → komunikat o braku wysyłki.
-8. Walidacja krzyżowa: dodaj wybraną ilość/wariant do koszyka, adres = kraj wynikowy,
-   wybierz zwycięskiego przewoźnika — koszt z checkoutu = wartość z karty.
+1. Open any demo product → the "Delivery from …" block appears under the "Add to
+   cart" button.
+2. **Quantity**: change the quantity selector → the price recomputes live (weight /
+   value / additional cost × quantity); crossing the free-shipping threshold → "Free".
+3. **Variant**: pick another combination → the cost reflects the variant's weight/price.
+4. **Location**: compare *Visitor location* (e.g. a country with VAT) with *Global
+   minimum* (the cheapest, often tax-free country); log in a customer with an address in another zone.
+5. Set `additional_shipping_cost` / `shipping_handling` → the cost grows by those components.
+6. A carrier with `range_behavior` = "disable" and a weight out of range → it disappears from the candidates.
+7. Virtual product → no-shipping message.
+8. Cross-check: add the selected quantity/variant to the cart, address = the resulting
+   country, pick the winning carrier — the checkout cost equals the value on the product page.
 
 ## Cache
 
-Cache'owaniem zajmuje się dekorator `src/Calculator/CachedCalculator` (opakowuje
-`LowestShippingCostCalculator`): wynik trafia do warstwy `Cache` PrestaShop pod kluczem
-zależnym od produktu, **wariantu, ilości, destynacji**, waluty, sklepu i grupy. Zmiana
-przewoźnika/produktu lub zapis konfiguracji **unieważnia cache** —
-`CachedCalculator::invalidate()` / zapis ustawień bumpują wersję zaszytą w kluczu.
+Caching is handled by the `src/Calculator/CachedCalculator` decorator (wrapping
+`LowestShippingCostCalculator`): the result goes into PrestaShop's `Cache` layer under
+a key that depends on the product, **variant, quantity, destination**, currency, shop
+and group. Changing a carrier/product or saving the configuration **invalidates the
+cache** — `CachedCalculator::invalidate()` / saving the settings bump the version
+embedded in the key.
 
-## Struktura i jakość kodu
+## Code structure and quality
 
-Moduł trzyma się konwencji nowoczesnych modułów PrestaShop 9:
+The module follows modern PrestaShop 9 module conventions:
 
-- **PSR-4 + Composer** — logika w `src/` pod namespace `PrestaShop\Module\LowestShippingCost`,
-  autoloading przez `composer.json` (`type: prestashop-module`, `prepend-autoloader: false`),
-  ładowany w głównym pliku (`vendor/autoload.php`). Brak ręcznych `require_once`.
-  Główny plik modułu to **cienki adapter** (wpięcie hooków + delegacja); cała logika
-  jest w `src/`: wycena (`Calculator/LowestShippingCostCalculator`), tryb podatkowy
-  (`Calculator/TaxContext`), cache (`Calculator/CachedCalculator`), resolucja wejść
-  (`Resolver/ProductPageResolver`), konfiguracja (`Configuration/ConfigurationData`).
-- **Backend konfiguracji = Symfony + DI** — strona ustawień to kontroler Symfony
-  (`src/Controller/Admin/ConfigurationController`, bazuje na `PrestaShopAdminController` —
-  wzorzec PS 9, następca przestarzałego `FrameworkBundleAdminController`) + `FormType`
-  (`src/Form/ConfigurationType`, `ChoiceType` + `SwitchType`) renderowany w Twigu
-  (`views/templates/admin/`). W PS 9 kontroler musi być serwisem: rejestracja w
-  `config/services.yml` z `autowire` + tagiem `controller.service_arguments` (zależność
-  `ConfigurationData` wstrzykiwana przez konstruktor), trasa w `config/routes.yml`,
-  `getContent()` przekierowuje na trasę. Dostęp pilnuje ukryty Tab admina
-  (`$this->tabs`). **Front-office hook celowo tworzy kalkulator przez `new`** — w kontekście
-  front-office `Module::get()` korzysta z lekkiego kontenera legacy, który nie zawiera serwisów
-  modułu (serwisy są w kontenerze Symfony/admin).
-- **`declare(strict_types=1)`** i typowane sygnatury w `src/` (`php >=8.1`, zgodnie z
-  wymaganiem PrestaShop 9).
-- **Nagłówek licencji AFL-3.0** w plikach PHP, `logo.png` dla listy modułów w BO.
-- **Tłumaczenia** przez `$this->trans(..., 'Modules.Lowestshippingcost.Admin')` (PHP) oraz
-  `{l s d='Modules.Lowestshippingcost.Shop'}` (szablony) — nowy system tłumaczeń.
+- **PSR-4 + Composer** — the logic lives in `src/` under the `PrestaShop\Module\LowestShippingCost`
+  namespace, autoloaded via `composer.json` (`type: prestashop-module`, `prepend-autoloader: false`),
+  loaded in the main file (`vendor/autoload.php`). No manual `require_once`. The module's
+  main file is a **thin adapter** (hook wiring + delegation); all logic is in `src/`:
+  pricing (`Calculator/LowestShippingCostCalculator`), tax mode (`Calculator/TaxContext`),
+  cache (`Calculator/CachedCalculator`), input resolution (`Resolver/ProductPageResolver`),
+  configuration (`Configuration/ConfigurationData`).
+- **Configuration backend = Symfony + DI** — the settings page is a Symfony controller
+  (`src/Controller/Admin/ConfigurationController`, based on `PrestaShopAdminController` —
+  the PS 9 pattern, successor to the deprecated `FrameworkBundleAdminController`) + a
+  `FormType` (`src/Form/ConfigurationType`, `ChoiceType` + `SwitchType`) rendered with Twig
+  (`views/templates/admin/`). In PS 9 the controller must be a service: registered in
+  `config/services.yml` with `autowire` + the `controller.service_arguments` tag (the
+  `ConfigurationData` dependency injected via the constructor), a route in `config/routes.yml`,
+  and `getContent()` redirects to that route. Access is guarded by a hidden admin Tab
+  (`$this->tabs`). **The front-office hook intentionally creates the calculator with `new`** —
+  in the front-office context `Module::get()` uses the lightweight legacy container, which does
+  not contain the module's services (they live in the Symfony/admin container).
+- **`declare(strict_types=1)`** and typed signatures in `src/` (`php >=8.1`, as required by
+  PrestaShop 9).
+- **AFL-3.0 license header** in PHP files, `logo.png` for the module list in BO.
+- **Translations** via `$this->trans(..., 'Modules.Lowestshippingcost.Admin')` (PHP) and
+  `{l s d='Modules.Lowestshippingcost.Shop'}` (templates) — the new translation system.
 
 ```bash
-composer install              # zależności dev + autoloader
+composer install              # dev dependencies + autoloader
 composer test                 # PHPUnit (vendor/bin/phpunit)
-vendor/bin/php-cs-fixer fix    # styl (@PSR12 + @Symfony, dostrojony do PS i PHP 7.2.5)
+vendor/bin/php-cs-fixer fix    # style (@PSR12 + @Symfony, tuned for PrestaShop)
 ```
 
-**Testy** (`tests/`): jednostkowe, bez bootowania PrestaShop — rdzeń wyceny
-(`computeForCarrierZone`: metoda wagowa/cenowa, progi darmowej wysyłki, `range_behavior`,
-opłata manipulacyjna, koszt dodatkowy, podatek + zaokrąglenie) jest testowany przez
-test doubles core'a zdefiniowane w `tests/bootstrap.php`, plus niezmienność DTO `CalculationResult`.
+**Tests** (`tests/`): unit tests, without booting PrestaShop — the pricing core
+(`computeForCarrierZone`: weight/price method, free-shipping thresholds, `range_behavior`,
+handling fee, additional cost, tax + rounding) is tested via the core test doubles defined
+in `tests/bootstrap.php`, plus the tax display modes (`TaxContext`) and the immutability of
+the `CalculationResult` DTO.

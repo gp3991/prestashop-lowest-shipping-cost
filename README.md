@@ -1,32 +1,32 @@
-# Lowest Shipping Cost — środowisko uruchomieniowe
+# Lowest Shipping Cost — run environment
 
-Moduł **PrestaShop 9** wyświetlający na karcie produktu **najniższy możliwy koszt
-dostawy** (dopasowany do lokalizacji odwiedzającego, ilości i wariantu). To
-repozytorium zawiera sam moduł (`modules/lowestshippingcost/`) oraz gotowe
-środowisko Docker, żeby uruchomić go na czystej instalacji PrestaShop bez
-ręcznej konfiguracji.
+A **PrestaShop 9** module that shows the **lowest possible delivery cost** on the
+product page (matched to the visitor's location, quantity and variant). This
+repository contains the module itself (`modules/lowestshippingcost/`) plus a
+ready-made Docker environment to run it on a clean PrestaShop install without any
+manual setup.
 
-## Szybki start
+## Quick start
 
 ```bash
-# 1. Zależności modułu (autoloader PSR-4 — bez tego klasy z src/ nie zadziałają)
+# 1. Module dependencies (PSR-4 autoloader — without it the src/ classes won't work)
 cd modules/lowestshippingcost && composer install --no-dev && cd -
 
-# 2. PrestaShop — auto-instalacja (obraz prestashop/prestashop:9.1-apache + MariaDB)
+# 2. PrestaShop — auto-install (prestashop/prestashop:9.1-apache image + MariaDB)
 docker compose up -d
 
-# 3. Gdy instalacja się zakończy — włącz moduł (jako www-data, by nie psuć uprawnień)
+# 3. Once the install finishes — enable the module (as www-data, to keep permissions intact)
 docker compose exec -u www-data prestashop \
   php bin/console prestashop:module install lowestshippingcost
 ```
 
-- **Sklep:** <http://localhost:8088>
+- **Shop:** <http://localhost:8088>
 - **Back office:** <http://localhost:8088/admin-dev> (`admin@example.com` / `prestashop123`)
 
-Moduł jest podmontowany na żywo (bind-mount `./modules/lowestshippingcost`), więc
-zmiany w kodzie są widoczne bez przebudowy obrazu.
+The module is bind-mounted live (`./modules/lowestshippingcost`), so code changes are
+visible without rebuilding the image.
 
-## Dokumentacja modułu
+## Module documentation
 
-Jak to działa, uwzględniane warunki, konfiguracja, model podatkowy, cache i testy
-— zobacz [`modules/lowestshippingcost/README.md`](modules/lowestshippingcost/README.md).
+How it works, the conditions taken into account, configuration, the tax model, caching
+and tests — see [`modules/lowestshippingcost/README.md`](modules/lowestshippingcost/README.md).
