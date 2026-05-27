@@ -60,15 +60,18 @@ yields a price for a product, the block is not rendered at all (instead of showi
 From the parent directory (where `docker-compose.yml` lives):
 
 ```bash
-# 1. Dependencies + PSR-4 autoloader (generates vendor/autoload.php).
-#    The module loads it conditionally; classes in src/ won't work without this step.
-cd modules/lowestshippingcost && composer install --no-dev && cd -
-
 docker compose up -d
 # wait for PrestaShop's auto-install, then (as www-data, to avoid breaking the
 # permissions of var/logs and var/cache):
 docker compose exec -u www-data prestashop php bin/console prestashop:module install lowestshippingcost
 ```
+
+The production autoloader is committed (`vendor/`, generated with `composer install
+--no-dev`), so no Composer step is required to run the module. PrestaShop loads a
+module's `src/` classes **only** via `vendor/autoload.php`
+(`AppKernel::enableComposerAutoloaderOnModules`), so without it the Symfony admin
+service would not resolve ("Class … cannot be found" on install). Run `composer
+install` only for development (the dev tools below).
 
 > Run `bin/console` commands with `-u www-data`. Otherwise files (e.g.
 > `var/logs/dev-*.log`) are created as root and Apache (www-data) cannot write to

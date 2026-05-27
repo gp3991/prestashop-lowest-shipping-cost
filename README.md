@@ -9,16 +9,18 @@ manual setup.
 ## Quick start
 
 ```bash
-# 1. Module dependencies (PSR-4 autoloader — without it the src/ classes won't work)
-cd modules/lowestshippingcost && composer install --no-dev && cd -
-
-# 2. PrestaShop — auto-install (prestashop/prestashop:9.1-apache image + MariaDB)
+# 1. PrestaShop — auto-install (prestashop/prestashop:9.1-apache image + MariaDB)
 docker compose up -d
 
-# 3. Once the install finishes — enable the module (as www-data, to keep permissions intact)
+# 2. Once the install finishes — enable the module (as www-data, to keep permissions intact)
 docker compose exec -u www-data prestashop \
   php bin/console prestashop:module install lowestshippingcost
 ```
+
+No Composer step is needed to run it: the module ships its production autoloader
+(`modules/lowestshippingcost/vendor/`, generated with `--no-dev`), which is the only
+way PrestaShop loads a module's `src/` classes. Composer is only required for
+development (tests / php-cs-fixer) — see the module README.
 
 - **Shop:** <http://localhost:8088>
 - **Back office:** <http://localhost:8088/admin-dev> (`admin@example.com` / `prestashop123`)

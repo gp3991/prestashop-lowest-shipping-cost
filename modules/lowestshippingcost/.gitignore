@@ -1,4 +1,8 @@
-/vendor/
+# vendor/ is committed (production autoloader only, --no-dev): the module has no
+# runtime dependencies, and PrestaShop loads module classes solely via
+# vendor/autoload.php, so shipping it lets a fresh clone run without Composer.
+# Running `composer install` (with dev tools) adds untracked packages here — do
+# not commit those.
 /.php-cs-fixer.cache
 /.phpunit.result.cache
 /.phpunit.cache/
