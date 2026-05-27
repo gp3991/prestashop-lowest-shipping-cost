@@ -16,6 +16,7 @@ use Context;
 use Currency;
 use PHPUnit\Framework\TestCase;
 use PrestaShop\Module\LowestShippingCost\Calculator\LowestShippingCostCalculator;
+use PrestaShop\Module\LowestShippingCost\Calculator\TaxContext;
 use ReflectionMethod;
 
 /**
@@ -56,7 +57,9 @@ class ShippingCostComputationTest extends TestCase
             (float) ($opts['freeWeight'] ?? 0.0),
             (float) ($opts['handling'] ?? 0.0),
             (int) ($opts['precision'] ?? 2),
-            new Address()
+            new Address(),
+            // Default: B2C storefront (PS_TAX on, gross display, no ATCP) -> carrier tax applied.
+            $opts['taxContext'] ?? new TaxContext(true, true, false)
         );
     }
 
@@ -161,6 +164,18 @@ class ShippingCostComputationTest extends TestCase
         $result = $this->compute($carrier, ['precision' => 2]);
 
         $this->assertSame(12.29, $result['cost']);
+    }
+
+    public function testNetDisplayContextSkipsCarrierTax(): void
+    {
+        $carrier = new Carrier();
+        $carrier->priceByWeight = 10.0;
+        $carrier->taxRate = 23.0;
+
+        // B2B / net storefront (PS_TAX_EXC): carrier tax must not be added.
+        $result = $this->compute($carrier, ['taxContext' => new TaxContext(true, false, false)]);
+
+        $this->assertSame(10.0, $result['cost']);
     }
 
     public function testWeightOutOfRangeWithDisableBehaviorReturnsNull(): void

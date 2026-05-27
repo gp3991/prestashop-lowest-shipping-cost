@@ -40,7 +40,10 @@ adres zalogowanego klienta).
 - globalne progi darmowej wysyłki (`PS_SHIPPING_FREE_PRICE`, `PS_SHIPPING_FREE_WEIGHT`),
 - opłata manipulacyjna (`PS_SHIPPING_HANDLING` + `shipping_handling`),
 - koszt dodatkowy produktu (`additional_shipping_cost`),
-- VAT przewoźnika zależny od kraju (`getTaxesRate`),
+- VAT przewoźnika zależny od kraju (`getTaxesRate`) oraz **tryb prezentacji ceny**:
+  netto/brutto zgodnie z grupą klienta (`getTaxCalculationMethod` — spójnie z ceną
+  produktu, np. B2B netto), globalny przełącznik `PS_TAX` i `PS_ATCP_SHIPWRAP`
+  (Niemcy) — logika w `Calculator/TaxContext`,
 - przewoźnicy przypisani do produktu (`product_carrier`),
 - ograniczenia grup klientów (`carrier_group`),
 - przeliczenie waluty (`Tools::convertPrice`),
@@ -125,9 +128,9 @@ Moduł trzyma się konwencji nowoczesnych modułów PrestaShop 9:
   autoloading przez `composer.json` (`type: prestashop-module`, `prepend-autoloader: false`),
   ładowany w głównym pliku (`vendor/autoload.php`). Brak ręcznych `require_once`.
   Główny plik modułu to **cienki adapter** (wpięcie hooków + delegacja); cała logika
-  jest w `src/`: wycena (`Calculator/LowestShippingCostCalculator`), cache
-  (`Calculator/CachedCalculator`), resolucja wejść (`Resolver/ProductPageResolver`),
-  konfiguracja (`Configuration/ConfigurationData`).
+  jest w `src/`: wycena (`Calculator/LowestShippingCostCalculator`), tryb podatkowy
+  (`Calculator/TaxContext`), cache (`Calculator/CachedCalculator`), resolucja wejść
+  (`Resolver/ProductPageResolver`), konfiguracja (`Configuration/ConfigurationData`).
 - **Backend konfiguracji = Symfony + DI** — strona ustawień to kontroler Symfony
   (`src/Controller/Admin/ConfigurationController`, bazuje na `PrestaShopAdminController` —
   wzorzec PS 9, następca przestarzałego `FrameworkBundleAdminController`) + `FormType`

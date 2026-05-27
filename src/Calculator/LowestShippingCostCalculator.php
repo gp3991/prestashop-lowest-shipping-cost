@@ -127,6 +127,18 @@ class LowestShippingCostCalculator
         $freeWeight = isset($conf['PS_SHIPPING_FREE_WEIGHT']) ? (float) $conf['PS_SHIPPING_FREE_WEIGHT'] : 0.0;
         $handling = isset($conf['PS_SHIPPING_HANDLING']) ? (float) $conf['PS_SHIPPING_HANDLING'] : 0.0;
 
+        // Tax treatment of the displayed figure, mirroring Cart::getPackageShippingCost:
+        // PS_TAX on/off, the storefront's net/gross display for the current group
+        // (B2B vs B2C), and PS_ATCP_SHIPWRAP (Germany). PS_TAX_EXC == net display.
+        $displayGross = ((int) Product::getTaxCalculationMethod() !== PS_TAX_EXC);
+        $atcp = (bool) Configuration::get('PS_ATCP_SHIPWRAP');
+        $taxContext = new TaxContext(
+            (bool) Configuration::get('PS_TAX'),
+            $displayGross,
+            $atcp,
+            ($atcp && !$displayGross) ? (float) $product->getTaxesRate() : 0.0
+        );
+
         // Destination scope: a provided list (visitor / shop default country) or
         // all active countries (global minimum) when none is supplied.
         if ($countries === null) {
@@ -172,7 +184,8 @@ class LowestShippingCostCalculator
                     $freeWeight,
                     $handling,
                     $precision,
-                    $address
+                    $address,
+                    $taxContext
                 );
                 if ($entry === null) {
                     continue; // carrier not available for this zone/weight/range
@@ -234,6 +247,7 @@ class LowestShippingCostCalculator
         float $handling,
         int $precision,
         Address $address,
+        TaxContext $taxContext,
     ): ?array {
         $shippingMethod = (int) $carrier->getShippingMethod();
         $free = false;
@@ -275,12 +289,13 @@ class LowestShippingCostCalculator
             $base = (float) Tools::convertPrice($base, $currency);
         }
 
-        // Carrier tax depends on the destination country (tax rules group).
+        // Carrier tax depends on the destination country (tax rules group); the
+        // tax context decides whether/how it is applied (PS_TAX, net/gross, ATCP).
         $taxRate = (float) $carrier->getTaxesRate($address);
-        $gross = $base * (1 + ($taxRate / 100));
-        $gross = (float) Tools::ps_round($gross, $precision);
+        $cost = $taxContext->applyTo($base, $taxRate);
+        $cost = (float) Tools::ps_round($cost, $precision);
 
-        return ['cost' => $gross, 'free' => $free];
+        return ['cost' => $cost, 'free' => $free];
     }
 
     /**
