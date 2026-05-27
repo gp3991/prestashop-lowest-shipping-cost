@@ -31,17 +31,15 @@ if (!defined('_PS_VERSION_')) {
  */
 final class TaxContext
 {
-    /** @var bool PS_TAX - tax handling enabled for the shop */
-    private $taxEnabled;
+    private bool $taxEnabled;
 
-    /** @var bool storefront shows tax-included prices for the current group */
-    private $displayGross;
+    private bool $displayGross;
 
-    /** @var bool PS_ATCP_SHIPWRAP - shipping taxed at the products' rate (DE) */
-    private $atcp;
+    /** PS_ATCP_SHIPWRAP: shipping taxed at the products' rate (Germany). */
+    private bool $atcp;
 
-    /** @var float products' tax rate in percent, used for the ATCP net deduction */
-    private $productTaxRate;
+    /** Products' tax rate in percent, for the ATCP net deduction. */
+    private float $productTaxRate;
 
     public function __construct(bool $taxEnabled, bool $displayGross, bool $atcp, float $productTaxRate = 0.0)
     {

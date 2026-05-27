@@ -44,8 +44,7 @@ if (!defined('_PS_VERSION_')) {
  */
 class LowestShippingCostCalculator
 {
-    /** @var Context */
-    private $context;
+    private Context $context;
 
     public function __construct(Context $context)
     {

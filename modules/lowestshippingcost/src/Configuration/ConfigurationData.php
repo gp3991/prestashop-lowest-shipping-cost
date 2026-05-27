@@ -13,12 +13,10 @@ namespace PrestaShop\Module\LowestShippingCost\Configuration;
 use Configuration;
 
 /**
- * Reads and persists the module settings. Injected into the Symfony
- * configuration controller, it keeps the controller thin and isolates all
- * Configuration access (and cache invalidation) in one place.
- *
- * Keys mirror the LSC_* constants on the legacy module class on purpose: the
- * same values are read by the front-office hook.
+ * Reads and persists the module settings - the single source of truth for the
+ * LSC_* configuration keys. Injected into the Symfony configuration controller
+ * (keeping it thin) and used by the front-office hook, so both read and write
+ * the same values and the cache is invalidated in one place.
  */
 class ConfigurationData
 {

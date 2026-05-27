@@ -23,8 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class ConfigurationController extends PrestaShopAdminController
 {
-    /** @var ConfigurationData */
-    private $configurationData;
+    private ConfigurationData $configurationData;
 
     public function __construct(ConfigurationData $configurationData)
     {

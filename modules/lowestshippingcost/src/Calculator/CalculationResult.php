@@ -31,18 +31,14 @@ class CalculationResult
     /** No carrier handles the product - nothing to display. */
     public const STATUS_UNAVAILABLE = 'unavailable';
 
-    /** @var string */
-    public $status;
-    /** @var float|null gross cost in the context currency (null when none) */
-    public $cost;
-    /** @var int|null */
-    public $idCarrier;
-    /** @var string|null */
-    public $carrierName;
-    /** @var int|null */
-    public $idCountry;
-    /** @var string|null destination country yielding the lowest cost */
-    public $countryName;
+    public string $status;
+    /** Gross cost in the context currency; null unless status is "ok"/"free". */
+    public ?float $cost;
+    public ?int $idCarrier;
+    public ?string $carrierName;
+    public ?int $idCountry;
+    /** Destination country yielding the lowest cost. */
+    public ?string $countryName;
 
     private function __construct(string $status)
     {

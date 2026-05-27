@@ -32,11 +32,9 @@ if (!defined('_PS_VERSION_')) {
  */
 class CachedCalculator
 {
-    /** @var Context */
-    private $context;
+    private Context $context;
 
-    /** @var LowestShippingCostCalculator */
-    private $calculator;
+    private LowestShippingCostCalculator $calculator;
 
     public function __construct(Context $context)
     {

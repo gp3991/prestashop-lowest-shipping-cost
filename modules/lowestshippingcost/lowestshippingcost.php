@@ -65,7 +65,7 @@ class LowestShippingCost extends Module
         $this->confirmUninstall = $this->trans('Are you sure you want to uninstall this module?', [], 'Modules.Lowestshippingcost.Admin');
     }
 
-    public function install()
+    public function install(): bool
     {
         return parent::install()
             && $this->registerHook('displayProductAdditionalInfo')
@@ -80,7 +80,7 @@ class LowestShippingCost extends Module
             && Configuration::updateValue(ConfigurationData::KEY_CACHE_VERSION, 1);
     }
 
-    public function uninstall()
+    public function uninstall(): bool
     {
         return Configuration::deleteByName(ConfigurationData::KEY_ALL_GROUPS)
             && Configuration::deleteByName(ConfigurationData::KEY_SKIP_EXTERNAL)
@@ -96,7 +96,7 @@ class LowestShippingCost extends Module
      * ProductPageResolver and the result is computed/cached by CachedCalculator;
      * this method only wires them together and assigns the template.
      */
-    public function hookDisplayProductAdditionalInfo(array $params)
+    public function hookDisplayProductAdditionalInfo(array $params): string
     {
         $resolver = new ProductPageResolver($this->context);
         $product = $resolver->resolveProduct($params);
@@ -143,7 +143,7 @@ class LowestShippingCost extends Module
         return $this->fetch('module:lowestshippingcost/views/templates/hook/lowest-shipping-cost.tpl');
     }
 
-    public function hookDisplayHeader()
+    public function hookDisplayHeader(): void
     {
         $this->context->controller->registerStylesheet(
             'module-lowestshippingcost',
@@ -153,17 +153,17 @@ class LowestShippingCost extends Module
     }
 
     // Cache invalidation - CachedCalculator::invalidate() bumps the version, dropping all entries at once.
-    public function hookActionObjectCarrierUpdateAfter($params)
+    public function hookActionObjectCarrierUpdateAfter(array $params): void
     {
         CachedCalculator::invalidate();
     }
 
-    public function hookActionObjectCarrierDeleteAfter($params)
+    public function hookActionObjectCarrierDeleteAfter(array $params): void
     {
         CachedCalculator::invalidate();
     }
 
-    public function hookActionObjectProductUpdateAfter($params)
+    public function hookActionObjectProductUpdateAfter(array $params): void
     {
         CachedCalculator::invalidate();
     }
@@ -172,7 +172,7 @@ class LowestShippingCost extends Module
      * The "Configure" button in the module list redirects to the Symfony
      * configuration page (see config/routes.yml + src/Controller/Admin).
      */
-    public function getContent()
+    public function getContent(): void
     {
         Tools::redirectAdmin(
             SymfonyContainer::getInstance()->get('router')->generate('lowestshippingcost_configuration')
