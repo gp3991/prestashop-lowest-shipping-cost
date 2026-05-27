@@ -1,0 +1,20 @@
+services:
+  # Persistence layer for the module settings (read/write Configuration).
+  # Autowired into the controller by its fully-qualified class name.
+  PrestaShop\Module\LowestShippingCost\Configuration\ConfigurationData:
+    public: true
+
+  # Symfony back-office configuration controller. As of PrestaShop 9 / Symfony 6.4
+  # admin controllers must be registered as services: autowiring resolves the
+  # constructor dependency, and the controller.service_arguments tag enables
+  # Symfony's controller argument resolution.
+  #
+  # The front-office hook instantiates LowestShippingCostCalculator directly with
+  # `new`, because in the front context Module::get() resolves the legacy light
+  # container, which does not hold module-defined services - so the calculator is
+  # intentionally not registered here.
+  PrestaShop\Module\LowestShippingCost\Controller\Admin\ConfigurationController:
+    autowire: true
+    autoconfigure: true
+    tags:
+      - { name: controller.service_arguments }

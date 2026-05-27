@@ -1,0 +1,47 @@
+.lsc-block {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0;
+    padding: 10px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background: #f7f7f7;
+    font-size: 0.95rem;
+}
+
+.lsc-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.lsc-block--free {
+    border-color: #4caf50;
+    background: #edf7ed;
+    color: #2e7d32;
+}
+
+.lsc-block--unavailable {
+    color: #777;
+    background: #fafafa;
+}
+
+.lsc-label {
+    font-weight: 600;
+}
+
+.lsc-price {
+    font-weight: 700;
+}
+
+.lsc-details {
+    color: #777;
+    font-size: 0.85rem;
+}
+
+.lsc-note {
+    margin: 4px 0 10px;
+    color: #999;
+    font-size: 0.8rem;
+}

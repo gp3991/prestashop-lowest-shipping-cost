@@ -1,0 +1,7 @@
+lowestshippingcost_configuration:
+  path: lowestshippingcost/configuration
+  methods: [GET, POST]
+  defaults:
+    _controller: PrestaShop\Module\LowestShippingCost\Controller\Admin\ConfigurationController::indexAction
+    _legacy_controller: AdminLowestShippingCostConfiguration
+    _legacy_link: AdminLowestShippingCostConfiguration
